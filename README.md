@@ -5,7 +5,9 @@
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/vedro-playwright?style=flat-square)](https://pypi.python.org/pypi/vedro-playwright/)
 [![Python Version](https://img.shields.io/pypi/pyversions/vedro-playwright.svg?style=flat-square)](https://pypi.python.org/pypi/vedro-playwright/)
 
-[Vedro](https://github.com/nikitanovosibirsk/vedro) + [playwright](https://playwright.dev/python/)
+[Vedro](https://vedro.io/) + [playwright](https://playwright.dev/python/)
+
+(forked from [vedro-pyppeteer](https://github.com/nikitanovosibirsk/vedro-pyppeteer))
 
 ## Installation
 
