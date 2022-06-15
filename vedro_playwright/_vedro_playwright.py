@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import vedro
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
-from vedro.core import Dispatcher, Plugin, PluginConfig
+from vedro.core import Dispatcher, Plugin, PluginConfig, FileArtifact
 from vedro.events import (
     ArgParsedEvent,
     ArgParseEvent,
@@ -134,15 +134,18 @@ class PlaywrightPlugin(Plugin):
                 screenshot = await page.screenshot()
                 if self._mode == ScreenshotsMode.EVERY_STEP:
                     self._save_screenshot(screenshot, path)
+                    event.step_result.attach(FileArtifact("Screenshot", "image/png", path))
                 elif self._mode == ScreenshotsMode.ON_FAIL:
                     self._buffer.append((screenshot, path))
                 elif (self._mode == ScreenshotsMode.ONLY_FAILED) and event.step_result.is_failed():
                     self._save_screenshot(screenshot, path)
+                    event.step_result.attach(FileArtifact("Screenshot", "image/png", path))
 
     async def on_scenario_failed(self, event: ScenarioFailedEvent) -> None:
         while len(self._buffer) > 0:
             screenshot, path = self._buffer.pop(0)
             self._save_screenshot(screenshot, path)
+            event.scenario_result.attach(FileArtifact("Fail screenshot", "image/png", path))
 
 
 class Playwright(PluginConfig):
