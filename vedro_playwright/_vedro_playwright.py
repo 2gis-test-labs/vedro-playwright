@@ -1,7 +1,7 @@
 from pathlib import Path
 from shutil import rmtree
 from time import time
-from typing import Any, Dict, Optional, Type, Union, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import vedro
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
@@ -108,14 +108,16 @@ class PlaywrightPlugin(Plugin):
             self._path.rerun = event.scenario_result.rerun
         self._step_buffer = {}
 
-    @staticmethod
-    def _save_screenshot(screenshot: bytes, path: Path) -> None:
+
+    def _save_screenshot(self,
+                         screenshot: bytes, path: Path) -> None:
         if not path.parent.exists():
             path.parent.mkdir(parents=True)
         path.write_bytes(screenshot)
 
-    @staticmethod
-    def _attach_screenshot_to_step_result(step_result: StepResult,
+
+    def _attach_screenshot_to_step_result(self,
+                                          step_result: StepResult,
                                           screenshot_path: Path,
                                           screenshot_name: str = "Screenshot") -> None:
         screenshot = FileArtifact(screenshot_name, "image/png", screenshot_path)
