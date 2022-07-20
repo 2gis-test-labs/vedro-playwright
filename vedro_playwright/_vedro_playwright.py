@@ -13,7 +13,7 @@ from vedro.events import (
     ScenarioRunEvent,
     StartupEvent,
     StepFailedEvent,
-    StepPassedEvent, ScenarioPassedEvent,
+    StepPassedEvent,
 )
 
 from ._browser_engine import BrowserEngine
