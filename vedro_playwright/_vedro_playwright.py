@@ -154,7 +154,7 @@ class PlaywrightPlugin(Plugin):
         for step_result in event.scenario_result.step_results:
             if step_result.step_name in self._step_buffer.keys():
                 self._attach_screenshot_to_step_result(step_result,
-                                                       self._step_buffer[step_result.step_name])
+                                                       self._step_buffer.pop(step_result.step_name))
 
 
 class Playwright(PluginConfig):
