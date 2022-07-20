@@ -1,11 +1,11 @@
 from pathlib import Path
 from shutil import rmtree
 from time import time
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, Optional, Type, Union
 
 import vedro
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
-from vedro.core import Dispatcher, Plugin, PluginConfig, FileArtifact
+from vedro.core import Dispatcher, Plugin, PluginConfig, FileArtifact, StepResult
 from vedro.events import (
     ArgParsedEvent,
     ArgParseEvent,
@@ -13,7 +13,7 @@ from vedro.events import (
     ScenarioRunEvent,
     StartupEvent,
     StepFailedEvent,
-    StepPassedEvent,
+    StepPassedEvent, ScenarioPassedEvent,
 )
 
 from ._browser_engine import BrowserEngine
@@ -65,7 +65,7 @@ class PlaywrightPlugin(Plugin):
         self._mode = ScreenshotsMode.DISABLED
         self._dir = Path()
         self._reruns = 0
-        self._buffer: List[Tuple[bytes, Path]] = []
+        self._step_buffer: Dict[str, Path] = {}
 
     def subscribe(self, dispatcher: Dispatcher) -> None:
         dispatcher.listen(ArgParseEvent, self.on_arg_parse) \
@@ -106,12 +106,20 @@ class PlaywrightPlugin(Plugin):
         self._path.scenario_subject = event.scenario_result.scenario.subject
         if self._reruns > 0:
             self._path.rerun = event.scenario_result.rerun
-        self._buffer = []
+        self._step_buffer = {}
 
-    def _save_screenshot(self, screenshot: bytes, path: Path) -> None:
+    @staticmethod
+    def _save_screenshot(screenshot: bytes, path: Path) -> None:
         if not path.parent.exists():
             path.parent.mkdir(parents=True)
         path.write_bytes(screenshot)
+
+    @staticmethod
+    def _attach_screenshot_to_step_result(step_result: StepResult,
+                                          screenshot_path: Path,
+                                          screenshot_name: str = "Screenshot") -> None:
+        screenshot = FileArtifact(screenshot_name, "image/png", screenshot_path)
+        step_result.attach(screenshot)
 
     async def on_step_end(self, event: Union[StepPassedEvent, StepFailedEvent]) -> None:
         if self._mode == ScreenshotsMode.DISABLED:
@@ -134,18 +142,19 @@ class PlaywrightPlugin(Plugin):
                 screenshot = await page.screenshot()
                 if self._mode == ScreenshotsMode.EVERY_STEP:
                     self._save_screenshot(screenshot, path)
-                    event.step_result.attach(FileArtifact("Screenshot", "image/png", path))
+                    self._attach_screenshot_to_step_result(event.step_result, path)
                 elif self._mode == ScreenshotsMode.ON_FAIL:
-                    self._buffer.append((screenshot, path))
+                    self._save_screenshot(screenshot, path)
+                    self._step_buffer[event.step_result.step_name] = path
                 elif (self._mode == ScreenshotsMode.ONLY_FAILED) and event.step_result.is_failed():
                     self._save_screenshot(screenshot, path)
-                    event.step_result.attach(FileArtifact("Screenshot", "image/png", path))
+                    self._attach_screenshot_to_step_result(event.step_result, path)
 
     async def on_scenario_failed(self, event: ScenarioFailedEvent) -> None:
-        while len(self._buffer) > 0:
-            screenshot, path = self._buffer.pop(0)
-            self._save_screenshot(screenshot, path)
-            event.scenario_result.attach(FileArtifact("Fail screenshot", "image/png", path))
+        for step_result in event.scenario_result.step_results:
+            if step_result.step_name in self._step_buffer.keys():
+                self._attach_screenshot_to_step_result(step_result,
+                                                       self._step_buffer[step_result.step_name])
 
 
 class Playwright(PluginConfig):
