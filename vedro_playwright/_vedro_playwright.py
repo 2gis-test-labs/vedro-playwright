@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, Type, Union
 
 import vedro
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
-from vedro.core import Dispatcher, Plugin, PluginConfig, FileArtifact, StepResult
+from vedro.core import Dispatcher, FileArtifact, Plugin, PluginConfig, StepResult
 from vedro.events import (
     ArgParsedEvent,
     ArgParseEvent,
