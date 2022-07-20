@@ -108,13 +108,11 @@ class PlaywrightPlugin(Plugin):
             self._path.rerun = event.scenario_result.rerun
         self._step_buffer = {}
 
-
     def _save_screenshot(self,
                          screenshot: bytes, path: Path) -> None:
         if not path.parent.exists():
             path.parent.mkdir(parents=True)
         path.write_bytes(screenshot)
-
 
     def _attach_screenshot_to_step_result(self,
                                           step_result: StepResult,
