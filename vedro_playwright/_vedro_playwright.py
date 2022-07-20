@@ -1,7 +1,7 @@
 from pathlib import Path
 from shutil import rmtree
 from time import time
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, Optional, Type, Union, List, Tuple
 
 import vedro
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
@@ -65,7 +65,7 @@ class PlaywrightPlugin(Plugin):
         self._mode = ScreenshotsMode.DISABLED
         self._dir = Path()
         self._reruns = 0
-        self._step_buffer: Dict[str, Path] = {}
+        self._step_buffer: Dict[str, List[Tuple[bytes, Path]]] = {}
 
     def subscribe(self, dispatcher: Dispatcher) -> None:
         dispatcher.listen(ArgParseEvent, self.on_arg_parse) \
@@ -144,17 +144,19 @@ class PlaywrightPlugin(Plugin):
                     self._save_screenshot(screenshot, path)
                     self._attach_screenshot_to_step_result(event.step_result, path)
                 elif self._mode == ScreenshotsMode.ON_FAIL:
-                    self._save_screenshot(screenshot, path)
-                    self._step_buffer[event.step_result.step_name] = path
+                    self._step_buffer[event.step_result.step_name].append((screenshot, path))
                 elif (self._mode == ScreenshotsMode.ONLY_FAILED) and event.step_result.is_failed():
                     self._save_screenshot(screenshot, path)
                     self._attach_screenshot_to_step_result(event.step_result, path)
 
     async def on_scenario_failed(self, event: ScenarioFailedEvent) -> None:
         for step_result in event.scenario_result.step_results:
-            if step_result.step_name in self._step_buffer.keys():
-                self._attach_screenshot_to_step_result(step_result,
-                                                       self._step_buffer.pop(step_result.step_name))
+            if step_result.step_name in self._step_buffer:
+                screenshots = self._step_buffer[step_result.step_name]
+                while len(screenshots) > 0:
+                    screenshot, path = screenshots.pop(0)
+                    self._save_screenshot(screenshot, path)
+                    self._attach_screenshot_to_step_result(step_result, path)
 
 
 class Playwright(PluginConfig):
