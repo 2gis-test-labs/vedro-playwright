@@ -144,6 +144,8 @@ class PlaywrightPlugin(Plugin):
                     self._save_screenshot(screenshot, path)
                     self._attach_screenshot_to_step_result(event.step_result, path)
                 elif self._mode == ScreenshotsMode.ON_FAIL:
+                    if event.step_result.step_name not in self._step_buffer:
+                        self._step_buffer[event.step_result.step_name] = []
                     self._step_buffer[event.step_result.step_name].append((screenshot, path))
                 elif (self._mode == ScreenshotsMode.ONLY_FAILED) and event.step_result.is_failed():
                     self._save_screenshot(screenshot, path)
@@ -151,12 +153,13 @@ class PlaywrightPlugin(Plugin):
 
     async def on_scenario_failed(self, event: ScenarioFailedEvent) -> None:
         for step_result in event.scenario_result.step_results:
-            if step_result.step_name in self._step_buffer:
-                screenshots = self._step_buffer[step_result.step_name]
-                while len(screenshots) > 0:
-                    screenshot, path = screenshots.pop(0)
-                    self._save_screenshot(screenshot, path)
-                    self._attach_screenshot_to_step_result(step_result, path)
+            if step_result.step_name not in self._step_buffer:
+                continue
+            screenshots = self._step_buffer[step_result.step_name]
+            while len(screenshots) > 0:
+                screenshot, path = screenshots.pop(0)
+                self._save_screenshot(screenshot, path)
+                self._attach_screenshot_to_step_result(step_result, path)
 
 
 class Playwright(PluginConfig):
